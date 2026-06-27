@@ -30,6 +30,7 @@ def configure_langfuse_environment(config: AppConfig) -> None:
     os.environ["LANGFUSE_SECRET_KEY"] = config.langfuse_secret_key or ""
     os.environ["LANGFUSE_HOST"] = config.langfuse_host
     os.environ["LANGFUSE_BASE_URL"] = config.langfuse_host
+    os.environ["LANGFUSE_VERIFY_SSL"] = "true" if config.langfuse_verify_ssl else "false"
     os.environ.setdefault("LANGFUSE_TRACING_ENVIRONMENT", "local-streamlit")
 
 
@@ -47,7 +48,7 @@ def get_langfuse_client(config: AppConfig) -> Any | None:
         public_key=config.langfuse_public_key,
         secret_key=config.langfuse_secret_key,
         host=config.langfuse_host,
-        httpx_client=_build_langfuse_httpx_client(),
+        httpx_client=_build_langfuse_httpx_client(config),
         span_exporter=_build_langfuse_span_exporter(config),
     )
     return get_client(public_key=config.langfuse_public_key)
@@ -128,8 +129,8 @@ def _string_metadata(metadata: dict[str, Any]) -> dict[str, str]:
     return clean
 
 
-def _build_langfuse_httpx_client() -> Any | None:
-    if _verify_ssl_enabled():
+def _build_langfuse_httpx_client(config: AppConfig) -> Any | None:
+    if _verify_ssl_enabled(config):
         return None
 
     import httpx
@@ -157,7 +158,7 @@ def _build_langfuse_span_exporter(config: AppConfig) -> Any | None:
         timeout=10,
     )
 
-    if _verify_ssl_enabled():
+    if _verify_ssl_enabled(config):
         try:
             import certifi
 
@@ -173,8 +174,8 @@ def _build_langfuse_span_exporter(config: AppConfig) -> Any | None:
     return exporter
 
 
-def _verify_ssl_enabled() -> bool:
-    return os.getenv("LANGFUSE_VERIFY_SSL", "true").lower() not in {"0", "false", "no"}
+def _verify_ssl_enabled(config: AppConfig) -> bool:
+    return config.langfuse_verify_ssl
 
 
 class _NoopObservation:

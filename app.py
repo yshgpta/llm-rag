@@ -79,7 +79,7 @@ def render_sidebar():
         chroma_dir = st.text_input("Chroma directory", value=env_config.chroma_dir)
 
         st.divider()
-        st.caption("Environment variables from `.env` are also supported.")
+        st.caption("Use `.env` locally or Streamlit secrets when deployed.")
 
     return load_config(
         google_api_key=google_api_key or None,
@@ -105,7 +105,7 @@ def render_upload(config) -> None:
 
     cols = st.columns([1, 2])
     with cols[0]:
-        index_clicked = st.button("Index document", disabled=not can_index, use_container_width=True)
+        index_clicked = st.button("Index document", disabled=not can_index, width="stretch")
     with cols[1]:
         if uploaded_file and not config.google_api_key:
             st.warning("Add a Gemini API key before indexing.")
@@ -222,14 +222,14 @@ def render_evaluation(config) -> None:
         return
 
     st.write(f"{len(st.session_state.eval_rows)} chat turn(s) ready for RAGAS evaluation.")
-    if st.button("Run RAGAS evaluation", use_container_width=False):
+    if st.button("Run RAGAS evaluation", width="content"):
         with st.spinner("Running RAGAS metrics..."):
             try:
                 result = run_ragas_evaluation(st.session_state.eval_rows, config)
             except Exception as exc:
                 st.error(f"RAGAS evaluation failed: {exc}")
                 return
-        st.dataframe(result, use_container_width=True)
+        st.dataframe(result, width="stretch")
 
 
 def main() -> None:

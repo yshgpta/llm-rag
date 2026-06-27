@@ -147,9 +147,14 @@ For scanned PDFs, convert pages to images or OCR them before upload.
 .
 ├── app.py
 ├── requirements.txt
+├── packages.txt
+├── runtime.txt
 ├── README.md
 ├── .env.example
 ├── .gitignore
+├── .streamlit
+│   ├── config.toml
+│   └── secrets.toml.example
 ├── src
 │   ├── config.py
 │   ├── document_loader.py
@@ -225,6 +230,43 @@ Open:
 http://localhost:8501
 ```
 
+## Streamlit Cloud Deployment
+
+This repo includes the files Streamlit Cloud expects:
+
+- `requirements.txt` for Python dependencies
+- `packages.txt` for the Tesseract OCR system package
+- `runtime.txt` to pin Python 3.11
+- `.streamlit/config.toml` for Streamlit server defaults
+- `.streamlit/secrets.toml.example` as a safe template for deployment secrets
+
+Deploy settings:
+
+```text
+Repository: yshgpta/llm-rag
+Branch: main
+Main file path: app.py
+```
+
+In Streamlit Cloud, add these app secrets:
+
+```toml
+GOOGLE_API_KEY = "your_gemini_api_key"
+
+LANGFUSE_PUBLIC_KEY = "your_langfuse_public_key"
+LANGFUSE_SECRET_KEY = "your_langfuse_secret_key"
+LANGFUSE_HOST = "https://cloud.langfuse.com"
+LANGFUSE_VERIFY_SSL = true
+
+GEMINI_CHAT_MODEL = "gemini-3.5-flash"
+GEMINI_EMBEDDING_MODEL = "models/gemini-embedding-001"
+CHROMA_DIR = "/tmp/chroma_db"
+```
+
+Use the Langfuse host for the region where your project keys were created. For example, `https://cloud.langfuse.com` is EU and `https://jp.cloud.langfuse.com` is Japan.
+
+Streamlit Cloud storage is ephemeral. Uploaded files and Chroma indexes are created at runtime and can disappear when the app restarts, so upload and index the document again after a restart.
+
 ## Usage
 
 1. Open the app.
@@ -236,7 +278,7 @@ http://localhost:8501
 7. Open the `Evaluate` tab.
 8. Click `Run RAGAS evaluation`.
 
-## Environment Variables
+## Configuration
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
@@ -248,6 +290,13 @@ http://localhost:8501
 | `GEMINI_CHAT_MODEL` | Optional | Gemini chat model override |
 | `GEMINI_EMBEDDING_MODEL` | Optional | Gemini embedding model override |
 | `CHROMA_DIR` | Optional | Local Chroma storage directory |
+
+Configuration is loaded in this order:
+
+1. Values entered in the Streamlit sidebar
+2. Environment variables or local `.env`
+3. Streamlit Cloud secrets
+4. Built-in defaults
 
 ## Tests
 
@@ -312,4 +361,3 @@ Then restart Streamlit.
 - Do not hardcode API keys.
 - `chroma_db/` is ignored because it contains generated local vector data.
 - `LANGFUSE_VERIFY_SSL=false` is only for local development in environments with TLS interception.
-
