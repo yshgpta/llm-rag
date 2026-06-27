@@ -1,0 +1,16 @@
+streamlit>=1.36.0
+langchain>=0.2.14
+langchain-community>=0.2.12
+langchain-core>=0.2.34
+langchain-google-genai>=1.0.8
+langchain-google-vertexai>=3.0.0
+langfuse>=2.44.0
+chromadb>=0.5.5
+pypdf>=4.3.1
+pillow>=10.4.0
+pytesseract>=0.3.13
+ragas>=0.1.14
+litellm>=1.90.0
+python-dotenv>=1.0.1
+certifi>=2026.6.17
+pytest>=8.3.2
