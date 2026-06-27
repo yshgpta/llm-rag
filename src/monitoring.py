@@ -10,6 +10,11 @@ from typing import Any
 from .config import AppConfig
 
 
+_LANGFUSE_CLIENT: Any | None = None
+_LANGFUSE_FINGERPRINT: tuple[str | None, str | None, str, str] | None = None
+_LANGFUSE_AUTH_OK: bool | None = None
+
+
 def configure_langfuse_environment(config: AppConfig) -> None:
     """Set SDK environment variables before the Langfuse client is initialized."""
     if not config.langfuse_enabled:
@@ -30,27 +35,50 @@ def configure_langfuse_environment(config: AppConfig) -> None:
     os.environ["LANGFUSE_HOST"] = config.langfuse_host
     os.environ["LANGFUSE_BASE_URL"] = config.langfuse_host
     os.environ["LANGFUSE_VERIFY_SSL"] = "true" if config.langfuse_verify_ssl else "false"
-    os.environ.setdefault("LANGFUSE_TRACING_ENVIRONMENT", "streamlit")
+    os.environ["LANGFUSE_TRACING_ENVIRONMENT"] = config.langfuse_environment
 
 
 def get_langfuse_client(config: AppConfig) -> Any | None:
     if not config.langfuse_enabled:
         return None
 
+    global _LANGFUSE_AUTH_OK, _LANGFUSE_CLIENT, _LANGFUSE_FINGERPRINT
+
     try:
-        from langfuse import Langfuse, get_client
+        from langfuse import Langfuse
     except ImportError as exc:
         raise RuntimeError("langfuse is not installed. Run pip install -r requirements.txt.") from exc
 
     configure_langfuse_environment(config)
-    Langfuse(
+
+    fingerprint = (
+        config.langfuse_public_key,
+        config.langfuse_secret_key,
+        config.langfuse_host,
+        config.langfuse_environment,
+    )
+    if _LANGFUSE_CLIENT is not None and _LANGFUSE_FINGERPRINT == fingerprint:
+        return _LANGFUSE_CLIENT if _LANGFUSE_AUTH_OK else None
+
+    if _LANGFUSE_CLIENT is not None:
+        try:
+            _LANGFUSE_CLIENT.shutdown()
+        except Exception:
+            pass
+
+    client = Langfuse(
         public_key=config.langfuse_public_key,
         secret_key=config.langfuse_secret_key,
         host=config.langfuse_host,
         httpx_client=_build_langfuse_httpx_client(config),
-        environment=os.environ["LANGFUSE_TRACING_ENVIRONMENT"],
+        environment=config.langfuse_environment,
+        flush_at=1,
+        flush_interval=1,
     )
-    return get_client()
+    _LANGFUSE_CLIENT = client
+    _LANGFUSE_FINGERPRINT = fingerprint
+    _LANGFUSE_AUTH_OK = client.auth_check()
+    return client if _LANGFUSE_AUTH_OK else None
 
 
 def build_langfuse_callback(config: AppConfig) -> Any | None:
@@ -63,7 +91,8 @@ def build_langfuse_callback(config: AppConfig) -> Any | None:
         raise RuntimeError("langfuse is not installed. Run pip install -r requirements.txt.") from exc
 
     configure_langfuse_environment(config)
-    get_langfuse_client(config)
+    if get_langfuse_client(config) is None:
+        return None
     return CallbackHandler()
 
 
@@ -125,10 +154,11 @@ def check_langfuse_connection(config: AppConfig) -> tuple[bool, str]:
     try:
         client = get_langfuse_client(config)
         if client is None:
-            return False, "Langfuse client is disabled."
-        if client.auth_check():
-            return True, f"Langfuse authentication succeeded for {config.langfuse_host}."
-        return False, f"Langfuse authentication failed for {config.langfuse_host}."
+            return False, f"Langfuse authentication failed for {config.langfuse_host}."
+        return True, (
+            f"Langfuse authentication succeeded for {config.langfuse_host} "
+            f"in `{config.langfuse_environment}` environment."
+        )
     except Exception as exc:
         return False, f"Langfuse connection failed: {exc}"
 

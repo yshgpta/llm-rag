@@ -50,6 +50,12 @@ def render_sidebar():
             type="password",
         )
         langfuse_host = st.text_input("Langfuse host", value=env_config.langfuse_host)
+        langfuse_environment = st.selectbox(
+            "Langfuse environment",
+            options=["streamlit", "local-streamlit", "default"],
+            index=_option_index(["streamlit", "local-streamlit", "default"], env_config.langfuse_environment),
+            help="Use the same environment filter in the Langfuse dashboard.",
+        )
         chat_model = st.selectbox(
             "Gemini chat model",
             options=[
@@ -86,13 +92,14 @@ def render_sidebar():
         langfuse_public_key=langfuse_public_key or None,
         langfuse_secret_key=langfuse_secret_key or None,
         langfuse_host=langfuse_host or None,
+        langfuse_environment=langfuse_environment or None,
         chat_model=chat_model or None,
         embedding_model=embedding_model or None,
         chroma_dir=chroma_dir or None,
     )
     with st.sidebar:
         if config.langfuse_enabled:
-            st.success(f"Langfuse configured for `{config.langfuse_host}`.")
+            st.success(f"Langfuse configured for `{config.langfuse_host}` / `{config.langfuse_environment}`.")
             if st.button("Test Langfuse connection", width="stretch"):
                 ok, message = check_langfuse_connection(config)
                 if ok:

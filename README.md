@@ -257,6 +257,7 @@ LANGFUSE_PUBLIC_KEY = "your_langfuse_public_key"
 LANGFUSE_SECRET_KEY = "your_langfuse_secret_key"
 LANGFUSE_HOST = "https://cloud.langfuse.com"
 LANGFUSE_VERIFY_SSL = true
+LANGFUSE_TRACING_ENVIRONMENT = "streamlit"
 
 GEMINI_CHAT_MODEL = "gemini-3.5-flash"
 GEMINI_EMBEDDING_MODEL = "models/gemini-embedding-001"
@@ -289,6 +290,7 @@ After deployment, open the sidebar and click `Test Langfuse connection`. This ch
 | `LANGFUSE_SECRET_KEY` | Optional | Langfuse tracing |
 | `LANGFUSE_HOST` | Optional | Langfuse region URL |
 | `LANGFUSE_VERIFY_SSL` | Optional | Local TLS troubleshooting |
+| `LANGFUSE_TRACING_ENVIRONMENT` | Optional | Langfuse environment filter label |
 | `GEMINI_CHAT_MODEL` | Optional | Gemini chat model override |
 | `GEMINI_EMBEDDING_MODEL` | Optional | Gemini embedding model override |
 | `CHROMA_DIR` | Optional | Local Chroma storage directory |
@@ -327,8 +329,11 @@ Check:
 - `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` are set.
 - `LANGFUSE_HOST` matches the region where the keys were created.
 - You are viewing the same region in the Langfuse dashboard.
+- The Langfuse dashboard environment filter includes the value from `LANGFUSE_TRACING_ENVIRONMENT`.
 - The app has run an indexed chat turn after the key was configured.
 - The sidebar `Test Langfuse connection` check succeeds in the deployed Streamlit app.
+
+If the Streamlit terminal shows `Failed to export span batch code: 401, reason: Unauthorized`, the Langfuse public key, secret key, and host do not belong to the same Langfuse project/region. Recreate or copy both keys from the same Langfuse project settings page and set `LANGFUSE_HOST` to that region.
 
 Region examples:
 

@@ -15,6 +15,7 @@ class AppConfig:
     langfuse_secret_key: str | None
     langfuse_host: str
     langfuse_verify_ssl: bool
+    langfuse_environment: str
     chat_model: str
     embedding_model: str
     chroma_dir: str
@@ -31,6 +32,7 @@ def load_config(
     langfuse_secret_key: str | None = None,
     langfuse_host: str | None = None,
     langfuse_verify_ssl: bool | str | None = None,
+    langfuse_environment: str | None = None,
     chat_model: str | None = None,
     embedding_model: str | None = None,
     chroma_dir: str | None = None,
@@ -45,6 +47,7 @@ def load_config(
         langfuse_verify_ssl=_as_bool(
             langfuse_verify_ssl if langfuse_verify_ssl is not None else _setting("LANGFUSE_VERIFY_SSL", "true")
         ),
+        langfuse_environment=langfuse_environment or _setting("LANGFUSE_TRACING_ENVIRONMENT", "streamlit"),
         chat_model=chat_model or _setting("GEMINI_CHAT_MODEL", "gemini-3.5-flash"),
         embedding_model=embedding_model or _setting("GEMINI_EMBEDDING_MODEL", "models/gemini-embedding-001"),
         chroma_dir=chroma_dir or _setting("CHROMA_DIR", "chroma_db"),
