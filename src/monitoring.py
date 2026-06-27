@@ -160,7 +160,7 @@ def check_langfuse_connection(config: AppConfig) -> tuple[bool, str]:
             f"in `{_langfuse_environment(config)}` environment."
         )
     except Exception as exc:
-        return False, f"Langfuse connection failed: {exc}"
+        return False, _friendly_langfuse_error(config, exc)
 
 
 def _string_metadata(metadata: dict[str, Any]) -> dict[str, str]:
@@ -188,6 +188,17 @@ def _verify_ssl_enabled(config: AppConfig) -> bool:
 
 def _langfuse_environment(config: AppConfig) -> str:
     return getattr(config, "langfuse_environment", os.getenv("LANGFUSE_TRACING_ENVIRONMENT", "streamlit"))
+
+
+def _friendly_langfuse_error(config: AppConfig, exc: Exception) -> str:
+    error_text = str(exc)
+    if "401" in error_text or "invalid credentials" in error_text.lower():
+        return (
+            f"Langfuse authentication failed for {config.langfuse_host}. "
+            "Copy both LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY from the same Langfuse project settings page, "
+            "and make sure LANGFUSE_HOST matches that project's region."
+        )
+    return f"Langfuse connection failed for {config.langfuse_host}: {type(exc).__name__}"
 
 
 class _NoopObservation:
