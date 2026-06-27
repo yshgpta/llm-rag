@@ -35,7 +35,7 @@ def configure_langfuse_environment(config: AppConfig) -> None:
     os.environ["LANGFUSE_HOST"] = config.langfuse_host
     os.environ["LANGFUSE_BASE_URL"] = config.langfuse_host
     os.environ["LANGFUSE_VERIFY_SSL"] = "true" if config.langfuse_verify_ssl else "false"
-    os.environ["LANGFUSE_TRACING_ENVIRONMENT"] = config.langfuse_environment
+    os.environ["LANGFUSE_TRACING_ENVIRONMENT"] = _langfuse_environment(config)
 
 
 def get_langfuse_client(config: AppConfig) -> Any | None:
@@ -55,7 +55,7 @@ def get_langfuse_client(config: AppConfig) -> Any | None:
         config.langfuse_public_key,
         config.langfuse_secret_key,
         config.langfuse_host,
-        config.langfuse_environment,
+        _langfuse_environment(config),
     )
     if _LANGFUSE_CLIENT is not None and _LANGFUSE_FINGERPRINT == fingerprint:
         return _LANGFUSE_CLIENT if _LANGFUSE_AUTH_OK else None
@@ -71,7 +71,7 @@ def get_langfuse_client(config: AppConfig) -> Any | None:
         secret_key=config.langfuse_secret_key,
         host=config.langfuse_host,
         httpx_client=_build_langfuse_httpx_client(config),
-        environment=config.langfuse_environment,
+        environment=_langfuse_environment(config),
         flush_at=1,
         flush_interval=1,
     )
@@ -157,7 +157,7 @@ def check_langfuse_connection(config: AppConfig) -> tuple[bool, str]:
             return False, f"Langfuse authentication failed for {config.langfuse_host}."
         return True, (
             f"Langfuse authentication succeeded for {config.langfuse_host} "
-            f"in `{config.langfuse_environment}` environment."
+            f"in `{_langfuse_environment(config)}` environment."
         )
     except Exception as exc:
         return False, f"Langfuse connection failed: {exc}"
@@ -184,6 +184,10 @@ def _build_langfuse_httpx_client(config: AppConfig) -> Any | None:
 
 def _verify_ssl_enabled(config: AppConfig) -> bool:
     return config.langfuse_verify_ssl
+
+
+def _langfuse_environment(config: AppConfig) -> str:
+    return getattr(config, "langfuse_environment", os.getenv("LANGFUSE_TRACING_ENVIRONMENT", "streamlit"))
 
 
 class _NoopObservation:

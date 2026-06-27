@@ -15,10 +15,10 @@ class AppConfig:
     langfuse_secret_key: str | None
     langfuse_host: str
     langfuse_verify_ssl: bool
-    langfuse_environment: str
     chat_model: str
     embedding_model: str
     chroma_dir: str
+    langfuse_environment: str = "streamlit"
 
     @property
     def langfuse_enabled(self) -> bool:

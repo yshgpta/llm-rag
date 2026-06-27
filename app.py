@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+import os
 
 import streamlit as st
 
@@ -12,6 +13,10 @@ from src.rag import ask_document, build_chain, create_vector_store
 
 
 st.set_page_config(page_title="Gemini Document RAG", page_icon="📄", layout="wide")
+
+
+def config_langfuse_environment(config) -> str:
+    return getattr(config, "langfuse_environment", os.getenv("LANGFUSE_TRACING_ENVIRONMENT", "streamlit"))
 
 
 def init_state() -> None:
@@ -53,7 +58,7 @@ def render_sidebar():
         langfuse_environment = st.selectbox(
             "Langfuse environment",
             options=["streamlit", "local-streamlit", "default"],
-            index=_option_index(["streamlit", "local-streamlit", "default"], env_config.langfuse_environment),
+            index=_option_index(["streamlit", "local-streamlit", "default"], config_langfuse_environment(env_config)),
             help="Use the same environment filter in the Langfuse dashboard.",
         )
         chat_model = st.selectbox(
@@ -99,7 +104,7 @@ def render_sidebar():
     )
     with st.sidebar:
         if config.langfuse_enabled:
-            st.success(f"Langfuse configured for `{config.langfuse_host}` / `{config.langfuse_environment}`.")
+            st.success(f"Langfuse configured for `{config.langfuse_host}` / `{config_langfuse_environment(config)}`.")
             if st.button("Test Langfuse connection", width="stretch"):
                 ok, message = check_langfuse_connection(config)
                 if ok:
