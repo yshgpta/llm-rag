@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 import os
+import inspect
 
 import streamlit as st
 
@@ -17,6 +18,11 @@ st.set_page_config(page_title="Gemini Document RAG", page_icon="📄", layout="w
 
 def config_langfuse_environment(config) -> str:
     return getattr(config, "langfuse_environment", os.getenv("LANGFUSE_TRACING_ENVIRONMENT", "streamlit"))
+
+
+def load_app_config(**kwargs):
+    accepted = set(inspect.signature(load_config).parameters)
+    return load_config(**{key: value for key, value in kwargs.items() if key in accepted})
 
 
 def init_state() -> None:
@@ -35,7 +41,7 @@ def init_state() -> None:
 
 
 def render_sidebar():
-    env_config = load_config()
+    env_config = load_app_config()
     with st.sidebar:
         st.header("Settings")
         google_api_key = st.text_input(
@@ -92,7 +98,7 @@ def render_sidebar():
         st.divider()
         st.caption("Use `.env` locally or Streamlit secrets when deployed.")
 
-    config = load_config(
+    config = load_app_config(
         google_api_key=google_api_key or None,
         langfuse_public_key=langfuse_public_key or None,
         langfuse_secret_key=langfuse_secret_key or None,
