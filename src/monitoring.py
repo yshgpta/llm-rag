@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-import base64
 from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Any
@@ -31,7 +30,7 @@ def configure_langfuse_environment(config: AppConfig) -> None:
     os.environ["LANGFUSE_HOST"] = config.langfuse_host
     os.environ["LANGFUSE_BASE_URL"] = config.langfuse_host
     os.environ["LANGFUSE_VERIFY_SSL"] = "true" if config.langfuse_verify_ssl else "false"
-    os.environ.setdefault("LANGFUSE_TRACING_ENVIRONMENT", "local-streamlit")
+    os.environ.setdefault("LANGFUSE_TRACING_ENVIRONMENT", "streamlit")
 
 
 def get_langfuse_client(config: AppConfig) -> Any | None:
@@ -49,9 +48,9 @@ def get_langfuse_client(config: AppConfig) -> Any | None:
         secret_key=config.langfuse_secret_key,
         host=config.langfuse_host,
         httpx_client=_build_langfuse_httpx_client(config),
-        span_exporter=_build_langfuse_span_exporter(config),
+        environment=os.environ["LANGFUSE_TRACING_ENVIRONMENT"],
     )
-    return get_client(public_key=config.langfuse_public_key)
+    return get_client()
 
 
 def build_langfuse_callback(config: AppConfig) -> Any | None:
@@ -65,7 +64,7 @@ def build_langfuse_callback(config: AppConfig) -> Any | None:
 
     configure_langfuse_environment(config)
     get_langfuse_client(config)
-    return CallbackHandler(public_key=config.langfuse_public_key)
+    return CallbackHandler()
 
 
 def callback_config(callback: Any | None) -> dict[str, list[Any]]:
@@ -119,6 +118,21 @@ def flush_langfuse(config: AppConfig) -> None:
         client.flush()
 
 
+def check_langfuse_connection(config: AppConfig) -> tuple[bool, str]:
+    if not config.langfuse_enabled:
+        return False, "Langfuse public and secret keys are not configured."
+
+    try:
+        client = get_langfuse_client(config)
+        if client is None:
+            return False, "Langfuse client is disabled."
+        if client.auth_check():
+            return True, f"Langfuse authentication succeeded for {config.langfuse_host}."
+        return False, f"Langfuse authentication failed for {config.langfuse_host}."
+    except Exception as exc:
+        return False, f"Langfuse connection failed: {exc}"
+
+
 def _string_metadata(metadata: dict[str, Any]) -> dict[str, str]:
     clean: dict[str, str] = {}
     for key, value in metadata.items():
@@ -136,42 +150,6 @@ def _build_langfuse_httpx_client(config: AppConfig) -> Any | None:
     import httpx
 
     return httpx.Client(verify=False)
-
-
-def _build_langfuse_span_exporter(config: AppConfig) -> Any | None:
-    if not config.langfuse_enabled:
-        return None
-
-    from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
-
-    headers = {
-        "Authorization": "Basic "
-        + base64.b64encode(f"{config.langfuse_public_key}:{config.langfuse_secret_key}".encode("utf-8")).decode(
-            "ascii"
-        ),
-        "x-langfuse-sdk-name": "python",
-        "x-langfuse-public-key": config.langfuse_public_key or "",
-    }
-    exporter = OTLPSpanExporter(
-        endpoint=f"{config.langfuse_host.rstrip('/')}/api/public/otel/v1/traces",
-        headers=headers,
-        timeout=10,
-    )
-
-    if _verify_ssl_enabled(config):
-        try:
-            import certifi
-
-            exporter._certificate_file = certifi.where()
-        except ImportError:
-            pass
-    else:
-        import urllib3
-
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        exporter._certificate_file = False
-
-    return exporter
 
 
 def _verify_ssl_enabled(config: AppConfig) -> bool:

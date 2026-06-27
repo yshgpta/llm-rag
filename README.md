@@ -267,6 +267,8 @@ Use the Langfuse host for the region where your project keys were created. For e
 
 Streamlit Cloud storage is ephemeral. Uploaded files and Chroma indexes are created at runtime and can disappear when the app restarts, so upload and index the document again after a restart.
 
+After deployment, open the sidebar and click `Test Langfuse connection`. This checks the configured public key, secret key, and host without exposing the key values.
+
 ## Usage
 
 1. Open the app.
@@ -326,6 +328,7 @@ Check:
 - `LANGFUSE_HOST` matches the region where the keys were created.
 - You are viewing the same region in the Langfuse dashboard.
 - The app has run an indexed chat turn after the key was configured.
+- The sidebar `Test Langfuse connection` check succeeds in the deployed Streamlit app.
 
 Region examples:
 

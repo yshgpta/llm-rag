@@ -7,7 +7,7 @@ import streamlit as st
 from src.config import load_config
 from src.document_loader import load_uploaded_document
 from src.evaluation import EvaluationRow, run_ragas_evaluation, source_contexts
-from src.monitoring import build_langfuse_callback, flush_langfuse, traced_observation
+from src.monitoring import build_langfuse_callback, check_langfuse_connection, flush_langfuse, traced_observation
 from src.rag import ask_document, build_chain, create_vector_store
 
 
@@ -81,7 +81,7 @@ def render_sidebar():
         st.divider()
         st.caption("Use `.env` locally or Streamlit secrets when deployed.")
 
-    return load_config(
+    config = load_config(
         google_api_key=google_api_key or None,
         langfuse_public_key=langfuse_public_key or None,
         langfuse_secret_key=langfuse_secret_key or None,
@@ -90,6 +90,19 @@ def render_sidebar():
         embedding_model=embedding_model or None,
         chroma_dir=chroma_dir or None,
     )
+    with st.sidebar:
+        if config.langfuse_enabled:
+            st.success(f"Langfuse configured for `{config.langfuse_host}`.")
+            if st.button("Test Langfuse connection", width="stretch"):
+                ok, message = check_langfuse_connection(config)
+                if ok:
+                    st.success(message)
+                else:
+                    st.error(message)
+        else:
+            st.info("Langfuse tracing is off until both Langfuse keys are set.")
+
+    return config
 
 
 def _option_index(options: list[str], value: str) -> int:
