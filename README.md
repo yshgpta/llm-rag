@@ -2,6 +2,8 @@
 
 A Streamlit application for uploading a PDF or image, building a Chroma-backed RAG index with Gemini embeddings, chatting with the uploaded document, tracing the workflow in Langfuse, and evaluating responses with RAGAS.
 
+Live app: https://yshgpta-llm-rag.streamlit.app/
+
 ## What This App Does
 
 1. Upload a PDF, JPG, JPEG, or PNG.
@@ -24,6 +26,7 @@ Streamlit powers the web UI in `app.py`.
 It provides:
 
 - Sidebar configuration for Gemini, Langfuse, model names, and Chroma path
+- Streamlit Cloud secrets support for deployed configuration
 - Document upload
 - Document indexing button
 - Chat tab
@@ -93,6 +96,13 @@ The app traces:
 - `document-chat`: each chat turn
 - `retrieve-document-context`: retrieval step inside a chat turn
 - Gemini/LangChain LLM calls via Langfuse callback handler
+
+The sidebar also includes:
+
+- Active Langfuse host and environment display
+- `Langfuse environment` selector for dashboard filtering
+- `Test Langfuse connection` button that validates the public key, secret key, and host without exposing secret values
+- Safer auth-error handling so invalid Langfuse credentials disable tracing instead of repeatedly exporting unauthorized spans
 
 Trace metadata includes:
 
@@ -232,6 +242,12 @@ http://localhost:8501
 
 ## Streamlit Cloud Deployment
 
+The app is live at:
+
+```text
+https://yshgpta-llm-rag.streamlit.app/
+```
+
 This repo includes the files Streamlit Cloud expects:
 
 - `requirements.txt` for Python dependencies
@@ -255,7 +271,7 @@ GOOGLE_API_KEY = "your_gemini_api_key"
 
 LANGFUSE_PUBLIC_KEY = "your_langfuse_public_key"
 LANGFUSE_SECRET_KEY = "your_langfuse_secret_key"
-LANGFUSE_HOST = "https://cloud.langfuse.com"
+LANGFUSE_HOST = "https://jp.cloud.langfuse.com"
 LANGFUSE_VERIFY_SSL = true
 LANGFUSE_TRACING_ENVIRONMENT = "streamlit"
 
@@ -264,11 +280,11 @@ GEMINI_EMBEDDING_MODEL = "models/gemini-embedding-001"
 CHROMA_DIR = "/tmp/chroma_db"
 ```
 
-Use the Langfuse host for the region where your project keys were created. For example, `https://cloud.langfuse.com` is EU and `https://jp.cloud.langfuse.com` is Japan.
+Use the Langfuse host for the region where your project keys were created. For example, `https://cloud.langfuse.com` is EU and `https://jp.cloud.langfuse.com` is Japan. The deployed app has been tested with the Japan host format above.
 
 Streamlit Cloud storage is ephemeral. Uploaded files and Chroma indexes are created at runtime and can disappear when the app restarts, so upload and index the document again after a restart.
 
-After deployment, open the sidebar and click `Test Langfuse connection`. This checks the configured public key, secret key, and host without exposing the key values.
+After deployment, open the sidebar and click `Test Langfuse connection`. This checks the configured public key, secret key, host, and environment without exposing the key values. If it fails with a credentials message, copy both Langfuse keys again from the same Langfuse project settings page and confirm `LANGFUSE_HOST` points to the same region.
 
 ## Usage
 
@@ -333,7 +349,9 @@ Check:
 - The app has run an indexed chat turn after the key was configured.
 - The sidebar `Test Langfuse connection` check succeeds in the deployed Streamlit app.
 
-If the Streamlit terminal shows `Failed to export span batch code: 401, reason: Unauthorized`, the Langfuse public key, secret key, and host do not belong to the same Langfuse project/region. Recreate or copy both keys from the same Langfuse project settings page and set `LANGFUSE_HOST` to that region.
+If the Streamlit terminal shows `Failed to export span batch code: 401, reason: Unauthorized`, the Langfuse public key, secret key, and host do not belong to the same Langfuse project/region. Recreate or copy both keys from the same Langfuse project settings page and set `LANGFUSE_HOST` to that region. The app now sanitizes this error in the UI and shows a short credentials/host mismatch message instead of raw HTTP headers.
+
+If Streamlit Cloud shows errors like `AppConfig object has no attribute langfuse_environment` or `load_config got an unexpected keyword argument langfuse_environment`, reboot the app from Streamlit Cloud after redeploying. The code includes compatibility fallbacks for this, but a full reboot clears stale Python modules from the running process.
 
 Region examples:
 
